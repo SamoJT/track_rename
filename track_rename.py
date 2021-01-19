@@ -1,24 +1,34 @@
 from mutagen import File
 from os import  path, rename, scandir
+from pathlib import Path
 
 def extract_rename(directory):
+    # Takes a full path to a directory containing music files.
+    # These are then checked for file type, if there is
+    # 'Title' metadata available, and finally if there are any
+    # forbidden file name characters. Once checks have been
+    # passed the file is renamed using os module.
+    
     unchanged = []
-    for file in scandir(directory):            
-        if file.path.endswith('mp3') or file.path.endswith('wav') or file.path.endswith('flac'):
-            meta_title = File(file, easy=True).get('title')
-            if meta_title != None:
-                forbidden = [' /', '/', ':', '*', '?', '"', '<', '>', '|']
-                if [char for char in forbidden if char in meta_title[0]]:
-                    unchanged.append(f"{file.name} due to forbidden characters.\n")
-                else:
-                    print(f'Old: {file.name}')
-                    ext = path.splitext(file)
-                    print(f'New: {meta_title[0]}{ext[1]}\n')
-                    rename(file.path, f'{directory}{meta_title[0]}{ext[1]}')
-            else:
-                unchanged.append(f'{file.name} due to no "Title" metadata.\n')
-        else:
+    for file in scandir(directory):
+        ext = Path(file.path).suffix
+        if ext not in ['.mp3', '.wav', '.flac']:
             unchanged.append(f"{file.name} due to unsupported file type.\n")
+            continue
+        
+        meta_title = File(file, easy=True).get('title')
+        if meta_title == None:
+            unchanged.append(f'{file.name} due to no "Title" metadata.\n')
+            continue
+        
+        forbidden = [' /', '/', ':', '*', '?', '"', '<', '>', '|']
+        if [char for char in forbidden if char in meta_title[0]]:
+            unchanged.append(f"{file.name} due to forbidden characters.\n")
+            continue
+        
+        print(f'Old: {file.name}')
+        print(f'New: {meta_title[0]}{ext}\n')
+        rename(file.path, f'{directory}{meta_title[0]}{ext}')
     return unchanged
 
 def main():

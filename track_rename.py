@@ -1,5 +1,5 @@
 from mutagen import File
-from os import  path, rename, scandir
+from os import path, rename, scandir
 from pathlib import Path
 
 def extract_rename(directory):
@@ -10,29 +10,31 @@ def extract_rename(directory):
     # passed the file is renamed using os module.
     
     unchanged = []
-    for file in scandir(directory):
-        ext = Path(file.path).suffix
-        if ext not in ['.mp3', '.wav', '.flac']:
-            unchanged.append(f"{file.name} due to unsupported file type.\n")
-            continue
-        
-        meta_title = File(file, easy=True).get('title')
-        if meta_title == None:
-            unchanged.append(f'{file.name} due to no "Title" metadata.\n')
-            continue
-        
-        forbidden = [' /', '/', ':', '*', '?', '"', '<', '>', '|']
-        if [char for char in forbidden if char in meta_title[0]]:
-            unchanged.append(f"{file.name} due to forbidden characters.\n")
-            continue
-        
-        print(f'Old: {file.name}')
-        print(f'New: {meta_title[0]}{ext}\n')
-        rename(file.path, f'{directory}{meta_title[0]}{ext}')
+    for file in scandir(directory):       
+        try:
+            ext = Path(file.path).suffix        
+            meta_title = File(file, easy=True).get('title')
+            if meta_title == None:
+                unchanged.append(f'{file.name} due to no "Title" metadata.')
+                continue
+
+            print(f'Old: {file.name}')
+            print(f'New: {meta_title[0]}{ext}\n')
+            rename(file.path, f'{directory}{meta_title[0]}{ext}')
+
+        except AttributeError:
+            unchanged.append(f"{file.name} due to unsupported file type.")
+        except FileExistsError:
+            unchanged.append(f"{file.name} due to duplicate file existing.")
+        except OSError:
+            unchanged.append(f"{file.name} due to forbidden characters.")
+        except:
+            unchanged.append(f"{file.name} due to unknown - Likely a Mutagen error.")
+    
     return unchanged
 
 def main():
-    directory = "C:/Users/Sam/Music/D&B/VA - Planet V Drum And Bass Vol. 1/"
+    directory = ""
     unchanged = extract_rename(directory)
     
     if unchanged != None:
